@@ -1,2 +1,2 @@
-# progettoSWENG
-progetto ingegneria del software
+# progettoBasiDati
+progetto Basi di Dati
