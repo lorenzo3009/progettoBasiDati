@@ -15,7 +15,6 @@ $data_nascita   = $_POST['data_nascita']        ?? '';
 $luogo_nascita  = trim($_POST['luogo_nascita']  ?? '');
 $tipo           = $_POST['tipo']                ?? '';
 $email          = trim($_POST['email']          ?? '');
-$cv_pdf         = trim($_POST['cv_pdf']         ?? '');
 
 // Conservo gli input nel caso di errore (li ripopolo nel form).
 // La password NON la conservo per principio: se ricarico il form, l'utente
@@ -27,7 +26,6 @@ $_SESSION['old_input'] = [
     'luogo_nascita'  => $luogo_nascita,
     'tipo'           => $tipo,
     'email'          => $email,
-    'cv_pdf'         => $cv_pdf
 ];
 
 // =====================================================================
@@ -68,8 +66,48 @@ if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
 // =====================================================================
 $password_hash = password_hash($password, PASSWORD_DEFAULT);
 
-// cv_pdf vuoto -> NULL nel DB (non stringa vuota)
-$cv_pdf_db = ($tipo === 'responsabile' && $cv_pdf !== '') ? $cv_pdf : null;
+// =====================================================================
+// Gestione upload PDF del CV (solo per responsabile, opzionale)
+// =====================================================================
+$cv_pdf_db = null;
+
+if ($tipo === 'responsabile'
+    && isset($_FILES['cv_pdf'])
+    && $_FILES['cv_pdf']['error'] === UPLOAD_ERR_OK) {
+
+    // Controllo MIME reale (non solo l'estensione: un attaccante
+    // potrebbe rinominare script.php in script.pdf)
+    $finfo = finfo_open(FILEINFO_MIME_TYPE);
+    $mime  = finfo_file($finfo, $_FILES['cv_pdf']['tmp_name']);
+    finfo_close($finfo);
+
+    if ($mime !== 'application/pdf') {
+        $_SESSION['error'] = 'Il file caricato non è un PDF valido.';
+        header('Location: register.php'); exit;
+    }
+    if ($_FILES['cv_pdf']['size'] > 2 * 1024 * 1024) {
+        $_SESSION['error'] = 'Il PDF supera i 2 MB.';
+        header('Location: register.php'); exit;
+    }
+
+    // Nome file derivato dall'username (sanitizzato)
+    $upload_dir  = __DIR__ . '/../../assets/uploads/';
+    $filename    = 'cv_' . preg_replace('/[^a-zA-Z0-9_-]/', '', $username) . '.pdf';
+    $destination = $upload_dir . $filename;
+
+    // Crea la cartella uploads se non esiste
+    if (!is_dir($upload_dir)) {
+        mkdir($upload_dir, 0775, true);
+    }
+
+    if (!move_uploaded_file($_FILES['cv_pdf']['tmp_name'], $destination)) {
+        $_SESSION['error'] = 'Impossibile salvare il file sul server.';
+        header('Location: register.php'); exit;
+    }
+
+    // Nel DB salvo il percorso relativo dal documento root
+    $cv_pdf_db = 'assets/uploads/' . $filename;
+}
 
 // =====================================================================
 // Chiamo la stored procedure sp_registra_utente.
@@ -82,9 +120,19 @@ try {
         CALL sp_registra_utente(?, ?, ?, ?, ?, ?, ?, ?, @successo, @messaggio)
     ");
     $stmt->execute([
-        $username, $password_hash, $codice_fiscale, $data_nascita, $luogo_nascita, $tipo, $email, $cv_pdf_db
+        $username,
+        $password_hash,
+        $codice_fiscale,
+        $data_nascita,
+        $luogo_nascita,
+        $tipo,
+        $email,
+        $cv_pdf_db
     ]);
     $stmt->closeCursor();
+
+    // Leggo gli OUT param (la procedura usa EXIT HANDLER e li valorizza
+    // anche in caso di errore SQL come duplicato).
     $result = $pdo->query("SELECT @successo AS successo, @messaggio AS messaggio")->fetch();
 } catch (PDOException $e) {
     $_SESSION['error'] = 'Errore database: ' . $e->getMessage();
@@ -97,18 +145,7 @@ if ((int)$result['successo'] !== 1) {
 }
 
 unset($_SESSION['old_input']);
-$_SESSION['error'] = 'Registrazione completata! Ora puoi accedere.';
-header('Location: login.php'); exit;
-
-// =====================================================================
-// REGISTRAZIONE OK: pulisco old_input e mando l'utente al login
-// con un messaggio di successo.
-// =====================================================================
-unset($_SESSION['old_input']);
-$_SESSION['error'] = 'Registrazione completata! Ora puoi accedere.';
-// Riuso $_SESSION['error'] per un messaggio "informativo": stilisticamente
-// non perfetto, ma evita di creare un secondo flash. In login.php
-// l'utente lo vedra' come banner rosso, basta cambiare classe se vuoi.
+$_SESSION['success'] = 'Registrazione completata! Ora puoi accedere.';
 header('Location: login.php');
 exit;
 ?>

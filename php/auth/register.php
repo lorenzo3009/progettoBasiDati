@@ -27,11 +27,9 @@ unset($_SESSION['old_input']);
     <div class="card-body">
       <h3 class="card-title mb-4 text-center">Crea un account</h3>
 
-      <?php if ($error): ?>
-        <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
-      <?php endif; ?>
+      <?php if ($error): ?><div class="alert alert-danger"><?= htmlspecialchars($error) ?></div><?php endif; ?>
 
-      <form action="register_process.php" method="POST">
+      <form action="register_process.php" method="POST" enctype="multipart/form-data">
 
         <div class="mb-3">
           <label class="form-label">Tipo di utente</label>
@@ -59,7 +57,7 @@ unset($_SESSION['old_input']);
         <div class="mb-3">
           <label class="form-label">Codice fiscale</label>
           <input type="text" name="codice_fiscale" maxlength="16" minlength="16"
-                 pattern="[A-Z0-9]{16}" class="form-control"
+                 pattern="[A-Za-z0-9]{16}" class="form-control"
                  style="text-transform:uppercase;"
                  value="<?= htmlspecialchars($old['codice_fiscale'] ?? '') ?>" required>
           <small class="text-muted">16 caratteri, lettere maiuscole e numeri.</small>
@@ -86,11 +84,9 @@ unset($_SESSION['old_input']);
 
         <!-- Campo cv_pdf, mostrato solo se ho selezionato "responsabile" -->
         <div class="mb-3" id="cv-field" style="display:none;">
-          <label class="form-label">CV (URL del PDF)</label>
-          <input type="text" name="cv_pdf" maxlength="255" class="form-control"
-                 placeholder="es. cv_mario.pdf"
-                 value="<?= htmlspecialchars($old['cv_pdf'] ?? '') ?>">
-          <small class="text-muted">Opzionale.</small>
+          <label class="form-label">CV (PDF)</label>
+          <input type="file" name="cv_pdf" accept="application/pdf" class="form-control">
+          <small class="text-muted">Opzionale, max 2MB.</small>
         </div>
 
         <button type="submit" class="btn btn-success w-100">Registrati</button>

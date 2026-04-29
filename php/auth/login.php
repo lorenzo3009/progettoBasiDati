@@ -11,6 +11,8 @@ if (isLogged()) {
 // (sistema "flash message": lo leggo e lo cancello subito).
 $error = $_SESSION['error'] ?? null;
 unset($_SESSION['error']);
+$success = $_SESSION['success'] ?? null;
+unset($_SESSION['success']);
 ?>
 <!DOCTYPE html>
 <html lang="it">
@@ -28,6 +30,9 @@ unset($_SESSION['error']);
 
       <?php if ($error): ?>
         <div class="alert alert-danger"><?= htmlspecialchars($error) ?></div>
+      <?php endif; ?>
+      <?php if ($success): ?>
+        <div class="alert alert-success"><?= htmlspecialchars($success) ?></div>
       <?php endif; ?>
 
       <!-- action: dove va la POST. method: POST per inviare credenziali. -->
