@@ -18,22 +18,24 @@ if ($id_bilancio <= 0 || $nome_voce === '' || $testo === '') {
     header('Location: bilancio.php?id=' . $id_bilancio); exit;
 }
 
-// Doppio check di autorizzazione: solo revisori assegnati possono scrivere note.
-// (Non basta requireRole: qualsiasi revisore potrebbe inviare POST con qualsiasi id_bilancio.)
-$check = $pdo->prepare("SELECT 1 FROM revisione WHERE username_revisore = ? AND id_bilancio = ?");
-$check->execute([$me, $id_bilancio]);
-if (!$check->fetch()) {
-    die('Non sei autorizzato.');
-}
+// Il check "revisore assegnato al bilancio" lo fa internamente la procedura
+// (restituisce p_successo = 0 con messaggio se non e' assegnato).
+// Quindi qui non serve la SELECT preventiva su 'revisione'.
 
 try {
-    $stmt = $pdo->prepare("CALL sp_inserisci_nota(?, ?, ?, CURDATE(), ?)");
+    $stmt = $pdo->prepare("
+        CALL sp_inserisci_nota(?, ?, ?, CURDATE(), ?, @successo, @messaggio)
+    ");
     $stmt->execute([$me, $id_bilancio, $nome_voce, $testo]);
-    // Nota: passo CURDATE() direttamente come parametro: il DB
-    // calcola la data di oggi al momento dell'INSERT.
+    $stmt->closeCursor();
+
+    // Leggo i due OUT param tramite SELECT delle @variabili MySQL
+    $result = $pdo->query("SELECT @successo AS successo, @messaggio AS messaggio")->fetch();
+
 } catch (PDOException $e) {
+    // Errori SQL "duri" (es. duplicato PK su nota: PRIMARY KEY composta
+    // (revisore, bilancio, voce) -> 23000)
     if ($e->getCode() === '23000') {
-        // PK composta (revisore, bilancio, voce): hai gia' una nota su questa voce.
         $_SESSION['error'] = 'Hai già scritto una nota per questa voce in questo bilancio.';
     } else {
         $_SESSION['error'] = 'Errore: ' . $e->getMessage();
@@ -41,7 +43,13 @@ try {
     header('Location: bilancio.php?id=' . $id_bilancio); exit;
 }
 
-$_SESSION['success'] = 'Nota aggiunta.';
+// Lettura dell'esito "morbido" comunicato dalla procedura tramite OUT
+if ((int)$result['successo'] === 1) {
+    $_SESSION['success'] = $result['messaggio'];
+} else {
+    $_SESSION['error']   = $result['messaggio'];
+}
+
 header('Location: bilancio.php?id=' . $id_bilancio);
 exit;
 ?>

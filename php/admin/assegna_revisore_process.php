@@ -22,9 +22,10 @@ try {
     // Trigger T1: se il bilancio era 'bozza' diventa 'in_revisione' automaticamente.
 } catch (PDOException $e) {
     if ($e->getCode() === '23000') {
-        // Tipico: questo revisore e' gia' assegnato a quel bilancio
-        // (PRIMARY KEY composta in 'revisione').
         $_SESSION['error'] = 'Il revisore è già assegnato a questo bilancio.';
+    } elseif ($e->getCode() === '45000') {
+        // Errore custom sollevato dalla stored procedure (bilancio vuoto)
+        $_SESSION['error'] = $e->getMessage();
     } else {
         $_SESSION['error'] = 'Errore: ' . $e->getMessage();
     }

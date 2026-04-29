@@ -22,7 +22,7 @@ $classifica_bilanci= $pdo->query("SELECT * FROM v_classifica_bilanci_esg LIMIT 5
 </head>
 <body class="bg-light">
 
-<<nav class="navbar navbar-dark bg-success mb-4">
+<nav class="navbar navbar-dark bg-success mb-4">
   <div class="container">
     <a class="navbar-brand" href="index.php">🌱 ESG-BALANCE</a>
     <div>

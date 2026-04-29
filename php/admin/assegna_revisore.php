@@ -16,6 +16,7 @@ $bilanci = $pdo->query("
     FROM bilancio b
     JOIN azienda a ON a.ragione_sociale = b.ragione_sociale
     WHERE b.stato IN ('bozza', 'in_revisione')
+      AND EXISTS (SELECT 1 FROM valore_bilancio vb WHERE vb.id_bilancio = b.id_bilancio)
     ORDER BY b.data_creazione DESC
 ")->fetchAll();
 

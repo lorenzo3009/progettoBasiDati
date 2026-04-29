@@ -78,28 +78,27 @@ $cv_pdf_db = ($tipo === 'responsabile' && $cv_pdf !== '') ? $cv_pdf : null;
 // che cattura il catch sotto.
 // =====================================================================
 try {
-    $stmt = $pdo->prepare("CALL sp_registra_utente(?, ?, ?, ?, ?, ?, ?, ?)");
+    $stmt = $pdo->prepare("
+        CALL sp_registra_utente(?, ?, ?, ?, ?, ?, ?, ?, @successo, @messaggio)
+    ");
     $stmt->execute([
-        $username,
-        $password_hash,
-        $codice_fiscale,
-        $data_nascita,
-        $luogo_nascita,
-        $tipo,
-        $email,
-        $cv_pdf_db
+        $username, $password_hash, $codice_fiscale, $data_nascita, $luogo_nascita, $tipo, $email, $cv_pdf_db
     ]);
+    $stmt->closeCursor();
+    $result = $pdo->query("SELECT @successo AS successo, @messaggio AS messaggio")->fetch();
 } catch (PDOException $e) {
-    // Errore tipico: username/CF/email duplicati.
-    // Codice 23000 = "integrity constraint violation" (UNIQUE/PK violata).
-    if ($e->getCode() === '23000') {
-        $_SESSION['error'] = 'Username, codice fiscale o email gia\' registrati.';
-    } else {
-        $_SESSION['error'] = 'Errore durante la registrazione: ' . $e->getMessage();
-    }
-    header('Location: register.php');
-    exit;
+    $_SESSION['error'] = 'Errore database: ' . $e->getMessage();
+    header('Location: register.php'); exit;
 }
+
+if ((int)$result['successo'] !== 1) {
+    $_SESSION['error'] = $result['messaggio'];
+    header('Location: register.php'); exit;
+}
+
+unset($_SESSION['old_input']);
+$_SESSION['error'] = 'Registrazione completata! Ora puoi accedere.';
+header('Location: login.php'); exit;
 
 // =====================================================================
 // REGISTRAZIONE OK: pulisco old_input e mando l'utente al login

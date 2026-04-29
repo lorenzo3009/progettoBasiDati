@@ -174,15 +174,27 @@ END$$
 -- di cambiare lo stato del bilancio da 'bozza' a 'in_revisione'.
 -- ---------------------------------------------------------------------
 CREATE PROCEDURE sp_assegna_revisore(
-    IN p_username_revisore VARCHAR(50),
-    IN p_id_bilancio       INT
+    IN p_username VARCHAR(50),
+    IN p_id_bilancio INT
 )
 BEGIN
+    DECLARE n_valori INT;
+
+    -- Vincolo applicativo: bilanci vuoti non possono ricevere revisori,
+    -- altrimenti il revisore non ha nulla da revisionare.
+    SELECT COUNT(*) INTO n_valori
+      FROM valore_bilancio
+     WHERE id_bilancio = p_id_bilancio;
+
+    IF n_valori = 0 THEN
+        SIGNAL SQLSTATE '45000'
+          SET MESSAGE_TEXT = 'Bilancio vuoto: aggiungere almeno una voce valorizzata prima di assegnare un revisore.';
+    END IF;
+
     INSERT INTO revisione (username_revisore, id_bilancio)
-    VALUES (p_username_revisore, p_id_bilancio);
-    -- Dopo questa INSERT, il trigger trg_assegna_revisore scatta
-    -- e aggiorna bilancio.stato automaticamente.
+    VALUES (p_username, p_id_bilancio);
 END$$
+
 
 
 -- =====================================================================
@@ -276,30 +288,11 @@ CREATE PROCEDURE sp_emetti_giudizio(
     IN p_rilievi           TEXT         -- può essere NULL
 )
 BEGIN
-    DECLARE v_tot_giudizi INT;
-    DECLARE v_app_puri    INT;
 
     -- Inserisco il giudizio (il trigger T2 scatta dopo e aggiorna il bilancio)
     INSERT INTO giudizio (username_revisore, id_bilancio, esito, data_giudizio, rilievi)
     VALUES (p_username_revisore, p_id_bilancio, p_esito, p_data_giudizio, p_rilievi);
 
-    -- Conto tutti i giudizi emessi da questo revisore (incluso quello appena inserito)
-    SELECT COUNT(*) INTO v_tot_giudizi
-      FROM giudizio
-     WHERE username_revisore = p_username_revisore;
-
-    -- Conto solo quelli con esito 'approvazione' (senza rilievi)
-    SELECT COUNT(*) INTO v_app_puri
-      FROM giudizio
-     WHERE username_revisore = p_username_revisore
-       AND esito = 'approvazione';
-
-    -- Aggiorno i due attributi del revisore
-    UPDATE revisore_esg
-       SET num_revisioni       = v_tot_giudizi,
-           -- DECIMAL(3,2): max 9.99, ma è BETWEEN 0 e 1, quindi ratio 0.00-1.00
-           indice_affidabilita = v_app_puri / v_tot_giudizi
-     WHERE username = p_username_revisore;
 END$$
 
 
