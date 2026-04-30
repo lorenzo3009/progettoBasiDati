@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 requireRole('revisore');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -46,6 +47,10 @@ try {
 }
 
 $_SESSION['success'] = 'Giudizio emesso correttamente.';
+logEvento('giudizio_emesso',
+    "Giudizio \"$esito\" emesso da $me sul bilancio #$id_bilancio",
+    ['id_bilancio' => $id_bilancio, 'esito' => $esito, 'revisore' => $me]
+);
 header('Location: bilancio.php?id=' . $id_bilancio);
 exit;
 ?>

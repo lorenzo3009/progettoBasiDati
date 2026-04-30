@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 requireRole('responsabile');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -61,6 +62,10 @@ if ((int)$result['successo'] !== 1) {
     $_SESSION['error'] = $result['messaggio'];
 } else {
     $_SESSION['success'] = $result['messaggio'];
+    logEvento('indicatore_collegato',
+        "Indicatore \"$nome_indicatore\" collegato a voce \"$nome_voce\" del bilancio #$id_bilancio",
+        ['id_bilancio' => $id_bilancio, 'voce' => $nome_voce, 'indicatore' => $nome_indicatore]
+    );
 }
 
 header('Location: bilancio.php?id=' . $id_bilancio);

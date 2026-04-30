@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 requireRole('responsabile');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -48,6 +49,10 @@ try {
 }
 
 $_SESSION['success'] = 'Valore salvato.';
+logEvento('valore_inserito',
+    "Valore inserito in bilancio #$id_bilancio per voce \"$nome_voce\": $valore",
+    ['id_bilancio' => $id_bilancio, 'voce' => $nome_voce, 'valore' => (float)$valore]
+);
 header('Location: bilancio.php?id=' . $id_bilancio);
 exit;
 ?>

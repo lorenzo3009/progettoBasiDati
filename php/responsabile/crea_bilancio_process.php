@@ -1,7 +1,9 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 requireRole('responsabile');
+
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: crea_bilancio.php');
@@ -38,6 +40,10 @@ try {
 }
 
 $_SESSION['success'] = "Bilancio #$new_id creato. Aggiungi ora voci e indicatori.";
+logEvento('bilancio_creato',
+    "Bilancio #$new_id creato per azienda \"$ragione_sociale\"",
+    ['id_bilancio' => $new_id, 'azienda' => $ragione_sociale]
+);
 header('Location: bilancio.php?id=' . $new_id);
 exit;
 ?>

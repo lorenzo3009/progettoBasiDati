@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 requireRole('revisore');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -46,6 +47,10 @@ try {
 // Lettura dell'esito "morbido" comunicato dalla procedura tramite OUT
 if ((int)$result['successo'] === 1) {
     $_SESSION['success'] = $result['messaggio'];
+    logEvento('nota_inserita',
+    "Nota aggiunta da $me sul bilancio #$id_bilancio (voce \"$nome_voce\")",
+    ['id_bilancio' => $id_bilancio, 'voce' => $nome_voce, 'revisore' => $me]
+);
 } else {
     $_SESSION['error']   = $result['messaggio'];
 }

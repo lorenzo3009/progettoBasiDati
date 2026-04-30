@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 requireRole('revisore');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
@@ -34,6 +35,10 @@ try {
 }
 
 $_SESSION['success'] = 'Competenza "' . $nome_competenza . '" dichiarata (livello ' . (int)$livello . ').';
+logEvento('competenza_dichiarata',
+    "Competenza \"$nome_competenza\" dichiarata da $me (livello $livello)",
+    ['username' => $me, 'competenza' => $nome_competenza, 'livello' => (int)$livello]
+);
 header('Location: dichiara_competenza.php');
 exit;
 ?>

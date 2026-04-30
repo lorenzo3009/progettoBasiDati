@@ -6,6 +6,16 @@
 // session_start() necessario PRIMA di poter manipolare la sessione.
 session_start();
 
+require_once __DIR__ . '/../../mongo/mongo.php';
+
+// Loggo PRIMA di distruggere la sessione (mi serve username)
+if (isset($_SESSION['username'])) {
+    logEvento('logout',
+        "Logout di " . $_SESSION['username'],
+        ['username' => $_SESSION['username']]
+    );
+}
+
 // 1) Svuoto l'array di sessione lato server.
 $_SESSION = [];
 

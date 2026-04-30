@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     header('Location: register.php');
@@ -146,6 +147,10 @@ if ((int)$result['successo'] !== 1) {
 
 unset($_SESSION['old_input']);
 $_SESSION['success'] = 'Registrazione completata! Ora puoi accedere.';
+logEvento('utente_registrato',
+    "Nuovo utente registrato: \"$username\" (tipo: $tipo)",
+    ['username' => $username, 'tipo' => $tipo]
+);
 header('Location: login.php');
 exit;
 ?>

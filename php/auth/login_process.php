@@ -1,6 +1,7 @@
 <?php
 require_once '../includes/auth.php';
 require_once '../db.php';
+require_once __DIR__ . '/../../mongo/mongo.php';
 
 // Sicurezza: questo file accetta SOLO POST (i form lo richiedono cosi).
 // Se qualcuno lo apre via GET, lo rimando al login.
@@ -43,6 +44,10 @@ $tipo            = $result['tipo'] ?? null;
 
 // Username inesistente: $stored_password e' NULL.
 if ($stored_password === null) {
+    logEvento('login_fallito',
+        "Tentativo di login con username inesistente: \"$username\"",
+        ['username_tentato' => $username]
+    );
     $_SESSION['error'] = 'Username o password non corretti.';
     header('Location: login.php');
     exit;
@@ -59,6 +64,10 @@ $ok = password_verify($password, $stored_password)
    || $password === $stored_password;
 
 if (!$ok) {
+    logEvento('login_fallito',
+        "Tentativo di login fallito per username \"$username\"",
+        ['username_tentato' => $username]
+    );
     $_SESSION['error'] = 'Username o password non corretti.';
     header('Location: login.php');
     exit;
@@ -75,6 +84,10 @@ $_SESSION['tipo']     = $tipo;
 // previene "session fixation" (attacco in cui un malintenzionato
 // pre-imposta l'ID e aspetta che la vittima si autentichi).
 session_regenerate_id(true);
+logEvento('login',
+    "Login effettuato da $username (ruolo: $tipo)",
+    ['username' => $username, 'tipo' => $tipo]
+);
 
 // Redirect alla dashboard giusta.
 switch ($tipo) {
